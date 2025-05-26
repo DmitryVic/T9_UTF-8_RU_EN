@@ -1,166 +1,167 @@
+#include "Trie.h"
 #include <iostream>
 #include <string>
 #include <vector>
-#include <bits/stdc++.h>
-#include "Trie.h"
-
+#include <fstream>
 using namespace std;
 
-// Возвращет новый узел с пустыми детьми
-TrieNode *getNewNode(void)
-{
-    // Выделяем память по новый узел
-    struct TrieNode *pNode =  new TrieNode;
 
-    // устанавливаем флаг конца слова в false
-    pNode->isEndOfWord = false; 
-    pNode->freq = 0; // частота узла
-    // инициализируем детей нулевым уазателем
-    for (int i = 0; i < ALPHABET_SIZE; i++) 
-        pNode->children[i] = nullptr;
+TrieNode* getNewNode() {
+    return new TrieNode();
+}
 
-    return pNode;
-} 
+//добавить слово
+void insert(TrieNode* root, const string& key) {
+    if (root == nullptr || key.empty())  // Проверка на пустой корень или пустой ключ
+        return;
+    
+    TrieNode* node = root;
 
-
-// Вставляет ключ в дерево, если его нет, 
-// иначе если ключ явлется префксом узла дерева 
-// помечает вкачестве литового т.е. конец слова
-void insert(TrieNode* root, string key) 
-{
-    TrieNode* node = root; 
-
-    for (int i = 0; i < key.length(); i++)
-    {
-        // вычисляем индекс в алфите через смещение отнситьельно первой буквы
-        int index = key[i] - 'a'; 
-
-        // если указатель пустрой, т.е. детей с таким префиксом нет
-        // создаем новый узел
+    for (char c : key) {
+        // Находим индекс символа в алфавите
+        // alphabet.find(c) - ищет символ c в строке alphabet и возвращает его индекс
+        int index = alphabet.find(c);
+        //string::npos - это специальное значение, которое указывает на то, что символ не найден в строке
+        if (index == string::npos) continue; // Пропускаем неизвестные символы
+        // Проверяем существует ли узел для данного символа
         if (!node->children[index])
             node->children[index] = getNewNode();
-
+        // Переходим к следующему узлу
         node = node->children[index];
-        node->freq++;  // <- увеличиваем счётчик!
+        // Увеличиваем частоту слова, если узел уже существует
+        node->freq++;
     }
-
-    // помечаем последний узлел как лист, т.е. конец слова
+    // Устанавливаем флаг конца слова в true
     node->isEndOfWord = true;
 }
 
-// Возврашает true если ключ есть в дереве, иначе false 
-bool search(struct TrieNode *root, string key) 
-{ 
-    struct TrieNode *node = root; 
 
-    for (int i = 0; i < key.length(); i++) 
-    {
-        int index = key[i] - 'a'; 
-        if (!node->children[index]) 
+//Возврашает true если ключ есть в дереве иначе false
+bool search(TrieNode* root, const string& key) {
+    if (root == nullptr || key.empty())  // Проверка на пустой корень или пустой ключ
+        return false;
+
+    TrieNode* node = root;
+    // Проходим по каждому символу ключа
+    for (char c : key) {
+        // Находим индекс символа в алфавите
+        int index = alphabet.find(c);   // alphabet.find(c) - ищет символ c в строке alphabet и возвращает его индекс
+        //string::npos - это специальное значение, которое указывает на то, что символ не найден в строке
+        //!node->children[index] - проверяет, существует ли узел для данного символа
+        if (index == string::npos || !node->children[index]) 
             return false;
-
-        node = node->children[index]; 
+        // Переходим к следующему узлу
+        node = node->children[index];
     }
-
-    return (node != nullptr && node->isEndOfWord); 
+    // Если дошли до конца ключа и узел является концом слова возвращаем true
+    return node && node->isEndOfWord;
 }
 
-// Вохвращает true если root имеет лист, иначе false 
-bool isEmpty(TrieNode* root)
-{
-    for (int i = 0; i < ALPHABET_SIZE; i++)
+
+// Проверяет, имеет ли узел детей
+bool isEmpty(TrieNode* root) {
+    if(!root) return true;                  // Если узел пустой возвращаем true
+    for (int i = 0; i < ALPHABET_SIZE; ++i)
+        // Если хотя бы один из детей не пустой возвращаем false
         if (root->children[i])
             return false;
     return true;
-} 
+}
 
-// Рекурсивная функция удаления ключа из дерева 
-TrieNode* remove(TrieNode* root, string key, int depth) 
-{ 
-    // Если дерево пустое 
-    if (!root)
-        return nullptr;
-  
-    // если дошли до конца ключа 
-    if (depth == key.size()) { 
-  
-        // Этот узел больше не конец слова 
-        if (root->isEndOfWord){ // является концом слова isEndOfWord == trye
-            root->isEndOfWord = false;  // Этот узел больше не конец слова 
-            root->freq--; // уменьшаем количество проходящих через этот узел
+
+// Рекурсивная функция удаления ключа из дерева
+TrieNode* remove(TrieNode* root, const string& key, int depth) {
+    if (!root) return nullptr;
+    // Если достигли конца ключа
+    if (depth == key.size()) {
+        // Если узел является концом слова
+        if (root->isEndOfWord) {
+            root->isEndOfWord = false;  // Устанавливаем флаг конца слова в false
+            root->freq--;               // Уменьшаем частоту слова    
         }
-
-        // Если ключ не евляется префиксом, удаляем его
-        if (isEmpty(root)) { //тоесть узел является листом
-            delete (root);
+        // Если узел не имеет детей и не является концом слова, удаляем его
+        if (isEmpty(root)) {
+            delete root;
             root = nullptr;
         }
-        
-        return root; //возвращаем корень, т.к. функция рекурсивная
+        return root;
+    }
+    // Ищем индекс текущего символа в алфавите
+    int index = alphabet.find(key[depth]);
+    // Если символ не найден в алфавите, возвращаем текущий узел
+    if (index == string::npos) return root;
+    // Рекурсивно удаляем ключ из соответствующего дочернего узла
+    root->children[index] = remove(root->children[index], key, depth + 1);
+    // Если текущий узел не является концом слова и не имеет детей удаляем его
+    if (isEmpty(root) && !root->isEndOfWord) {
+        delete root;
+        root = nullptr;
     }
 
-    // Если не дошли до конца ключа, рекурсивно вызываем для ребенка 
-    // соответствующего символа 
-    int index = key[depth] - 'a';
-    root->children[index] = remove(root->children[index], key, depth + 1); 
-  
-    // Если у корня нет дочернего слова 
-    // (удален только один его дочерний элемент), 
-    // и он не заканчивается другим словом. 
-    if (isEmpty(root) && root->isEndOfWord == false) { 
-        delete (root);
-        root = nullptr; 
-    }
-  
-    // возвращаем новый корень
-    return root; 
+    return root;
 }
 
-// Функция для нахождения минимальных префиксов в дереве    
-// root - корень дерева, buf - буфер для хранения префиксов,
-// ind - текущий индекс в буфере, res - строка для хранения результата
-void findAllWords(TrieNode* root, char buf[], int ind, vector<string>& res)
-{
-    // Если узел пустой, то ничего не делаем
-    if (!root)
+
+/*
+Функция для нахождения префиксов в дереве
+root - корневой узел дерева
+current - текущая строка, которая накапливается
+results - вектор, куда будут добавлены найденные слова
+*/
+void findAllWords(TrieNode* root, string current, vector<string>& results) {
+    if (results.size() >= MAX_WORDS) // Ограничиваем количество найденных слов
         return;
 
-    // Если узел является концом слова, то мы нашли минимальный префикс
+    if (!root) return;
+    // Если узел является концом слова добавляем текущее слово в результаты
     if (root->isEndOfWord) {
-        // '\0' символ в конце буфера, чтобы сделать его строкой
-        buf[ind] = '\0';
-        // добавляем в результат строку из буфера
-        res.push_back(string(buf));
-        // НЕ return — продолжаем искать дальше (возможно, есть более длинные слова) return;
+        results.push_back(current);
     }
-
-    // Если узел не является концом слова, продолжаем обход
-    // перебираем всех детей узла
-    for (int i = 0; i < ALPHABET_SIZE; ++i)
-    {
-        // если ребенок не пустой, добавляем символ в буфер и рекурсивно вызываем функцию
+    
+    // Проходим по всем детям узла
+    for (int i = 0; i < ALPHABET_SIZE; ++i) {
+        // Если ребенок существует рекурсивно вызываем функцию для него
         if (root->children[i]) {
-            buf[ind] = 'a' + i; // добавляем символ в буфер
-            findAllWords(root->children[i], buf, ind + 1, res);  // рекурсивный вызов для ребенка
+            findAllWords(root->children[i], current + alphabet[i], results);
         }
     }
 }
 
-void getWordsWithPrefix(TrieNode* root, const string& prefix, vector<string>& results)
-{
-    TrieNode* node = root;
 
-    // Проходим до конца префикса
+/*
+Функция для получения всех слов с заданным префиксом
+root - корневой узел дерева
+prefix - префикс, по которому ищем слова
+results - вектор, куда будут добавлены найденные слова
+*/
+void getWordsWithPrefix(TrieNode* root, const string& prefix, vector<string>& results) {
+    TrieNode* node = root;
+    // Проходим по каждому символу префикса
     for (char c : prefix) {
-        int index = c - 'a';
-        if (!node->children[index]) return;
+        // Находим индекс символа в алфавите
+        int index = alphabet.find(c);
+        //string::npos - это специальное значение, которое указывает на то, что символ не найден в строке
+        //!node->children[index] - проверяет существует ли узел для данного символа
+        if (index == string::npos || !node->children[index])
+            return; // Префикс не найден
+        // Переходим к следующему узлу
         node = node->children[index];
     }
+    // Если префикс найден, находим все слова начинающиеся с этого префикса
+    findAllWords(node, prefix, results);
+}
 
-    // Создаём буфер с уже записанным префиксом
-    char buf[100];
-    strcpy(buf, prefix.c_str());
 
-    // Продолжаем поиск слов из найденного узла
-    findAllWords(node, buf, prefix.length(), results);
+// Загружает слова из текстового файла один на строку
+void loadWordsFromFile(TrieNode* root, const string& filename) {
+    ifstream file(filename);
+    if (!file.is_open())
+        return;
+    
+    string line;
+    while (getline(file, line)) {
+        if (!line.empty())
+            insert(root, line); // Вставляем строку в дерево
+    }
+    file.close();
 }

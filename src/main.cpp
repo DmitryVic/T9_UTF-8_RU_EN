@@ -6,45 +6,60 @@ using namespace std;
 #include <algorithm>
 
 
+#ifdef _WIN32
+#define WIN32_LEAN_AND_MEAN  // Уменьшает количество включаемых заголовков Windows
+#include <windows.h>        // Используется для настройки консоли
+#endif
+
+
+
 int main(int argc, char const *argv[])
 {
+    // Универсальная настройка локали
+    setlocale(LC_ALL, "ru_RU.UTF-8");
 
+    // Настройки для Windows
+    // исправляет не коректную запись в string русских символов в консоле
+    // распространяет локализацию на весь проект 
+    #ifdef _WIN32
+        SetConsoleCP(CP_UTF8);
+        SetConsoleOutputCP(CP_UTF8);
+    #endif
+    
+    // Для Linux/Mac
+    // был ли определен SET_GLOBAL_LOCALE_LINUX ? да (в cmake) или нет (в cmake)
+    #ifdef SET_GLOBAL_LOCALE_LINUX
+        std::locale::global(std::locale("ru_RU.UTF-8"));
+    #endif
+    
     // Создаем корневой узел
     TrieNode *root = getNewNode();
     // Вставляем ключи в дерево
-    insert(root, "hello");
-    insert(root, "helloo");
-    insert(root, "helloworld");
-    insert(root, "he");
-    insert(root, "hell");
-    insert(root, "heaven");
-    insert(root, "world"); 
-    insert(root, "worldwide");
-    insert(root, "water");
-    //insert(root, "руские символы"); произойдет исключени - используется ASCII
-    insert(root, "array");
-    insert(root, "algorithm");
-    insert(root, "algorithms");
-    insert(root, "algor");
+    loadWordsFromFile(root, "7853-russian-words.txt"); // загружаем слова из файла 7853-russian-words.txt
 
-    (search(root, "helloo")) ? cout << "Found 'hello'\n" : cout << "'hello' not found\n";
-    string rez;
-    char buf[100] = {0}; // буфер для хранения префиксов
-    vector<string> out;
-    findAllWords(root, buf, 0, out);
-    sort(out.begin(), out.end());
-    for (size_t i = 0; i < out.size(); i++)
-    {
-        cout << out[i] << " " << endl;
+    string input;
+    while (true) {
+
+        cout << "\nВведите префикс (или 'exit' для выхода): ";
+        getline(cin, input);
+
+        if (input == "exit")
+            break;
+
+        vector<string> suggestions;
+        getWordsWithPrefix(root, input, suggestions);
+
+        if (suggestions.empty()) {
+            cout << "Нет совпадений.\n";
+        } else {
+            cout << "Возможные слова:\n";
+            for (const string& word : suggestions) {
+                cout << " - " << word << endl;
+            }
+        }
+                
+
     }
-    
-    cout << "------------------------" << endl;
-    out.clear();
-    getWordsWithPrefix(root, "he", out);
-    sort(out.begin(), out.end());
-    for (size_t i = 0; i < out.size(); i++)
-    {
-        cout << out[i] << " " << endl;
-    }
-        return 0;
+
+    return 0;
 }
