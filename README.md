@@ -28,5 +28,5 @@
 Текстовый файл `7853-russian-words.txt` копируется при сборке в папку `build` (настройки в `CMakeLists.txt`) 
 
 Для того, чтобы изменить алфавит:
-- изменить алфавит `const std::string alphabet` в файле `Trie.h`
-- изменить размерность алфавита `ALPHABET_SIZE` в файле `Trie.h`, равную количеству символав в `alphabet`
+- изменить алфавит `const std::string alphabet` в файле `Trie.h`;
+- изменить размерность алфавита `ALPHABET_SIZE` в файле `Trie.h`, равную количеству символав в `alphabet`.
